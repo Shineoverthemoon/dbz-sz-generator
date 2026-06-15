@@ -1,0 +1,660 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sparking! ZERO — Team Battle Generator</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@700;900&family=Inter:wght@400;500;600&display=swap');
+
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+
+:root{
+  --ki:    #FFD700;
+  --blue:  #1A6EFF;
+  --dark:  #060810;
+  --panel: #0D1020;
+  --card:  #111428;
+  --border:#1E2440;
+  --text:  #E8EEFF;
+  --dim:   #5A6080;
+  --red:   #FF3A3A;
+  --aura:  rgba(255,215,0,0.12);
+}
+
+body{
+  background:var(--dark);
+  color:var(--text);
+  font-family:'Inter',sans-serif;
+  min-height:100vh;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  padding:28px 14px 72px;
+  overflow-x:hidden;
+}
+
+/* ── animated bg ── */
+body::before{
+  content:'';
+  position:fixed;
+  inset:0;
+  background:
+    radial-gradient(ellipse 60% 40% at 20% 10%, rgba(26,110,255,0.07) 0%, transparent 70%),
+    radial-gradient(ellipse 50% 35% at 80% 80%, rgba(255,215,0,0.05) 0%, transparent 70%);
+  pointer-events:none;
+  z-index:0;
+}
+
+/* ── header ── */
+.header{text-align:center;position:relative;z-index:1;margin-bottom:8px;}
+.title{
+  font-family:'Orbitron',sans-serif;
+  font-size:clamp(1.4rem,6vw,2.8rem);
+  font-weight:900;
+  letter-spacing:0.06em;
+  color:var(--ki);
+  text-shadow:0 0 30px rgba(255,215,0,0.4);
+  line-height:1;
+}
+.subtitle{
+  font-size:0.7rem;
+  letter-spacing:0.22em;
+  text-transform:uppercase;
+  color:var(--dim);
+  margin-top:6px;
+}
+
+/* ── main card ── */
+.card{
+  background:var(--panel);
+  border:1px solid var(--border);
+  border-radius:14px;
+  padding:24px 20px;
+  width:100%;
+  max-width:800px;
+  position:relative;
+  z-index:1;
+  margin-top:24px;
+}
+
+/* ── controls row ── */
+.controls{
+  display:flex;
+  flex-wrap:wrap;
+  gap:12px;
+  align-items:flex-end;
+  margin-bottom:20px;
+}
+
+.ctrl-group{display:flex;flex-direction:column;gap:6px;flex:1;min-width:120px;}
+.ctrl-label{
+  font-size:0.62rem;
+  letter-spacing:0.18em;
+  text-transform:uppercase;
+  color:var(--dim);
+}
+select, .team-size-btn{
+  background:#0A0D1A;
+  border:1px solid var(--border);
+  border-radius:8px;
+  color:var(--text);
+  font-family:'Inter',sans-serif;
+  font-size:0.85rem;
+  padding:10px 12px;
+  cursor:pointer;
+  outline:none;
+}
+select:focus{border-color:var(--blue);}
+
+.size-btns{display:flex;gap:6px;}
+.size-btn{
+  background:#0A0D1A;
+  border:1px solid var(--border);
+  border-radius:8px;
+  color:var(--dim);
+  font-family:'Orbitron',sans-serif;
+  font-size:0.8rem;
+  font-weight:700;
+  padding:9px 14px;
+  cursor:pointer;
+  transition:all 0.15s;
+  flex:1;
+}
+.size-btn:hover{border-color:var(--blue);color:var(--text);}
+.size-btn.active{background:var(--blue);border-color:var(--blue);color:#fff;}
+
+/* ── generate btn ── */
+.btn-gen{
+  font-family:'Orbitron',sans-serif;
+  font-size:0.9rem;
+  font-weight:700;
+  letter-spacing:0.1em;
+  background:linear-gradient(135deg, #FFB800, #FF6A00);
+  color:#000;
+  border:none;
+  border-radius:8px;
+  padding:13px 32px;
+  cursor:pointer;
+  transition:transform 0.12s, box-shadow 0.15s;
+  white-space:nowrap;
+  align-self:flex-end;
+}
+.btn-gen:hover{transform:scale(1.04);box-shadow:0 0 20px rgba(255,184,0,0.35);}
+.btn-gen:active{transform:scale(0.97);}
+.btn-gen:disabled{opacity:0.4;cursor:not-allowed;transform:none;box-shadow:none;}
+
+/* ── result ── */
+#result{display:none;flex-direction:column;gap:16px;}
+
+/* teams row */
+.teams-row{
+  display:grid;
+  grid-template-columns:1fr 48px 1fr;
+  gap:0;
+  align-items:start;
+}
+.team-panel{
+  background:var(--card);
+  border:1px solid var(--border);
+  border-radius:10px;
+  padding:16px 14px;
+}
+.team-label{
+  font-family:'Orbitron',sans-serif;
+  font-size:0.65rem;
+  font-weight:700;
+  letter-spacing:0.2em;
+  text-transform:uppercase;
+  margin-bottom:10px;
+  padding-bottom:8px;
+  border-bottom:1px solid var(--border);
+}
+.team-label.joe{color:var(--blue);}
+.team-label.jack{color:var(--red);}
+
+.fighter-chip{
+  display:flex;
+  align-items:center;
+  gap:8px;
+  padding:6px 0;
+  border-bottom:1px solid #141828;
+  font-size:0.82rem;
+}
+.fighter-chip:last-child{border-bottom:none;}
+.chip-num{
+  font-family:'Orbitron',sans-serif;
+  font-size:0.6rem;
+  font-weight:700;
+  color:var(--dim);
+  width:16px;
+  flex-shrink:0;
+}
+.chip-name{color:var(--text);}
+
+.vs-col{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  padding-top:20px;
+}
+.vs-badge{
+  font-family:'Orbitron',sans-serif;
+  font-size:1.1rem;
+  font-weight:900;
+  color:var(--ki);
+  text-shadow:0 0 12px rgba(255,215,0,0.5);
+}
+
+/* ── scenario box ── */
+.scenario-box{
+  background:var(--card);
+  border:1px solid var(--border);
+  border-left:3px solid var(--ki);
+  border-radius:10px;
+  padding:18px 16px;
+}
+.scenario-label{
+  font-size:0.6rem;
+  letter-spacing:0.2em;
+  text-transform:uppercase;
+  color:var(--ki);
+  margin-bottom:10px;
+  font-weight:600;
+}
+.scenario-text{
+  font-size:0.87rem;
+  line-height:1.65;
+  color:#B0B8D8;
+  min-height:60px;
+}
+.scenario-text.loading{
+  color:var(--dim);
+  font-style:italic;
+}
+
+/* typing cursor */
+.cursor{
+  display:inline-block;
+  width:2px;
+  height:0.9em;
+  background:var(--ki);
+  margin-left:2px;
+  vertical-align:text-bottom;
+  animation:blink 0.7s steps(1) infinite;
+}
+@keyframes blink{0%,100%{opacity:1;}50%{opacity:0;}}
+
+/* ── filter pills ── */
+.filter-row{
+  display:flex;
+  flex-wrap:wrap;
+  gap:6px;
+  margin-bottom:16px;
+}
+.pill{
+  font-size:0.7rem;
+  letter-spacing:0.1em;
+  text-transform:uppercase;
+  padding:5px 10px;
+  border-radius:20px;
+  border:1px solid var(--border);
+  background:#0A0D1A;
+  color:var(--dim);
+  cursor:pointer;
+  transition:all 0.12s;
+}
+.pill:hover{border-color:var(--blue);color:var(--text);}
+.pill.active{background:var(--blue);border-color:var(--blue);color:#fff;}
+
+/* scrollbar */
+::-webkit-scrollbar{width:5px;}
+::-webkit-scrollbar-track{background:#0A0D1A;}
+::-webkit-scrollbar-thumb{background:#222840;border-radius:3px;}
+
+@media(max-width:500px){
+  .teams-row{grid-template-columns:1fr 36px 1fr;}
+  .vs-badge{font-size:0.85rem;}
+}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="title">SPARKING! ZERO</div>
+  <div class="subtitle">Team Battle Generator — Joe vs Jack</div>
+</div>
+
+<div class="card">
+  <!-- Filter pills -->
+  <div class="filter-row" id="filterRow">
+    <div class="pill active" data-filter="all">All</div>
+    <div class="pill" data-filter="z">DBZ</div>
+    <div class="pill" data-filter="super">Super</div>
+    <div class="pill" data-filter="movies">Movies</div>
+    <div class="pill" data-filter="gt">GT</div>
+    <div class="pill" data-filter="villains">Villains Only</div>
+    <div class="pill" data-filter="saiyans">Saiyans Only</div>
+  </div>
+
+  <!-- Controls -->
+  <div class="controls">
+    <div class="ctrl-group">
+      <span class="ctrl-label">Team Size</span>
+      <div class="size-btns">
+        <button class="size-btn" data-size="1">1v1</button>
+        <button class="size-btn" data-size="2">2v2</button>
+        <button class="size-btn" data-size="3">3v3</button>
+        <button class="size-btn" data-size="4">4v4</button>
+        <button class="size-btn active" data-size="5">5v5</button>
+      </div>
+    </div>
+    <button class="btn-gen" id="genBtn">⚡ GENERATE BATTLE</button>
+  </div>
+
+  <!-- Result -->
+  <div id="result">
+    <div class="teams-row">
+      <div class="team-panel">
+        <div class="team-label joe">Joe's Team</div>
+        <div id="teamJoe"></div>
+      </div>
+      <div class="vs-col"><div class="vs-badge">VS</div></div>
+      <div class="team-panel">
+        <div class="team-label jack">Jack's Team</div>
+        <div id="teamJack"></div>
+      </div>
+    </div>
+    <div class="scenario-box">
+      <div class="scenario-label">⚡ Battle Scenario</div>
+      <div class="scenario-text loading" id="scenarioText">Generating scenario…</div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── Full Sparking Zero roster with tags ────────────────────
+const ALL = [
+  // Goku variants - Z
+  {n:"Goku (Z Early)",t:["z","saiyans"]},
+  {n:"Goku (Z Mid)",t:["z","saiyans"]},
+  {n:"Goku (Z Mid) Super Saiyan",t:["z","saiyans"]},
+  {n:"Goku (Z End)",t:["z","saiyans"]},
+  {n:"Goku (Z End) Super Saiyan",t:["z","saiyans"]},
+  {n:"Goku (Z End) Super Saiyan 2",t:["z","saiyans"]},
+  {n:"Goku (Z End) Super Saiyan 3",t:["z","saiyans"]},
+  // Goku - Super
+  {n:"Goku (Super)",t:["super","saiyans"]},
+  {n:"Goku (Super) Super Saiyan",t:["super","saiyans"]},
+  {n:"Goku (Super) Super Saiyan God",t:["super","saiyans"]},
+  {n:"Goku (Super) Super Saiyan Blue",t:["super","saiyans"]},
+  {n:"Goku (Super) Super Saiyan Blue KKx10",t:["super","saiyans"]},
+  {n:"Goku (Ultra Instinct Sign)",t:["super","saiyans"]},
+  {n:"Goku (Ultra Instinct)",t:["super","saiyans"]},
+  {n:"Goku (Mini)",t:["super","saiyans"]},
+  // Vegeta variants
+  {n:"Vegeta (Scouter)",t:["z","saiyans","villains"]},
+  {n:"Vegeta (Z Early)",t:["z","saiyans"]},
+  {n:"Vegeta (Z Mid)",t:["z","saiyans"]},
+  {n:"Vegeta (Z Mid) Super Saiyan",t:["z","saiyans"]},
+  {n:"Vegeta (Z End)",t:["z","saiyans"]},
+  {n:"Vegeta (Z End) Super Saiyan",t:["z","saiyans"]},
+  {n:"Vegeta (Z End) Super Saiyan 2",t:["z","saiyans"]},
+  {n:"Vegeta (Super)",t:["super","saiyans"]},
+  {n:"Vegeta (Super) Super Saiyan Blue",t:["super","saiyans"]},
+  {n:"Vegeta (Super) Super Saiyan Blue Evolved",t:["super","saiyans"]},
+  // Gohan
+  {n:"Kid Gohan",t:["z"]},
+  {n:"Teen Gohan",t:["z"]},
+  {n:"Teen Gohan Super Saiyan",t:["z","saiyans"]},
+  {n:"Teen Gohan Super Saiyan 2",t:["z","saiyans"]},
+  {n:"Adult Gohan",t:["z","super"]},
+  {n:"Ultimate Gohan",t:["z","super"]},
+  {n:"Mystic Gohan",t:["super"]},
+  // Piccolo
+  {n:"Piccolo (Z Early)",t:["z"]},
+  {n:"Piccolo (Z Mid)",t:["z"]},
+  {n:"Piccolo (Z End)",t:["z"]},
+  {n:"Piccolo (Super)",t:["super"]},
+  // Z Heroes
+  {n:"Krillin",t:["z","super"]},
+  {n:"Tien",t:["z","super"]},
+  {n:"Yamcha",t:["z"]},
+  {n:"Chiaotzu",t:["z"]},
+  {n:"Yajirobe",t:["z"]},
+  {n:"Mr. Satan",t:["z","super"]},
+  {n:"Videl",t:["z"]},
+  {n:"Pan (GT)",t:["gt"]},
+  // Bardock / Saiyans
+  {n:"Bardock",t:["z","saiyans"]},
+  {n:"Bardock Super Saiyan",t:["z","saiyans"]},
+  {n:"Raditz",t:["z","saiyans","villains"]},
+  {n:"Nappa",t:["z","villains"]},
+  {n:"Turles",t:["movies","saiyans","villains"]},
+  {n:"Saibaman",t:["z","villains"]},
+  // Nail / Namek
+  {n:"Nail",t:["z"]},
+  // Frieza saga
+  {n:"Dodoria",t:["z","villains"]},
+  {n:"Cui",t:["z","villains"]},
+  {n:"Zarbon",t:["z","villains"]},
+  {n:"Captain Ginyu",t:["z","villains"]},
+  {n:"Recoome",t:["z","villains"]},
+  {n:"Burter",t:["z","villains"]},
+  {n:"Jeice",t:["z","villains"]},
+  {n:"Guldo",t:["z","villains"]},
+  {n:"Frieza (1st Form)",t:["z","villains"]},
+  {n:"Frieza (2nd Form)",t:["z","villains"]},
+  {n:"Frieza (3rd Form)",t:["z","villains"]},
+  {n:"Frieza (Final Form)",t:["z","villains"]},
+  {n:"Frieza (100%)",t:["z","villains"]},
+  {n:"Mecha Frieza",t:["z","villains"]},
+  {n:"Golden Frieza",t:["super","villains"]},
+  {n:"King Cold",t:["z","villains"]},
+  // Trunks
+  {n:"Future Trunks (Z)",t:["z","saiyans"]},
+  {n:"Future Trunks (Z) Super Saiyan",t:["z","saiyans"]},
+  {n:"Trunks (Kid)",t:["z","gt","saiyans"]},
+  {n:"Future Trunks (Super)",t:["super","saiyans"]},
+  {n:"Future Trunks (Super) Super Saiyan",t:["super","saiyans"]},
+  {n:"Future Trunks (Super) Super Saiyan Rage",t:["super","saiyans"]},
+  // Android saga
+  {n:"Android 16",t:["z","villains"]},
+  {n:"Android 17 (Z)",t:["z","villains"]},
+  {n:"Android 17 (Super)",t:["super"]},
+  {n:"Android 18",t:["z","super"]},
+  {n:"Android 19",t:["z","villains"]},
+  {n:"Doctor Gero",t:["z","villains"]},
+  {n:"Android 13",t:["movies","villains"]},
+  {n:"Fusion Android 13",t:["movies","villains"]},
+  {n:"Cell (1st Form)",t:["z","villains"]},
+  {n:"Cell (2nd Form)",t:["z","villains"]},
+  {n:"Cell (Perfect)",t:["z","villains"]},
+  {n:"Cell (Super Perfect)",t:["z","villains"]},
+  // Goten / Gotenks
+  {n:"Goten",t:["z","saiyans"]},
+  {n:"Gotenks",t:["z","super"]},
+  {n:"Gotenks Super Saiyan",t:["z","super","saiyans"]},
+  {n:"Gotenks Super Saiyan 3",t:["z","super","saiyans"]},
+  // Buu saga
+  {n:"Majin Buu (Good)",t:["z"]},
+  {n:"Majin Buu (Evil)",t:["z","villains"]},
+  {n:"Super Buu",t:["z","villains"]},
+  {n:"Super Buu (Gohan Absorbed)",t:["z","villains"]},
+  {n:"Kid Buu",t:["z","villains"]},
+  {n:"Babidi",t:["z","villains"]},
+  {n:"Dabura",t:["z","villains"]},
+  {n:"Majin Vegeta",t:["z","saiyans","villains"]},
+  // Vegito / Gogeta
+  {n:"Vegito",t:["z","super","saiyans"]},
+  {n:"Vegito Super Saiyan",t:["z","saiyans"]},
+  {n:"Vegito Blue",t:["super","saiyans"]},
+  {n:"Gogeta",t:["z","movies","saiyans"]},
+  {n:"Gogeta Super Saiyan",t:["movies","saiyans"]},
+  {n:"Gogeta Super Saiyan 4",t:["gt","saiyans"]},
+  {n:"Gogeta Blue",t:["super","movies","saiyans"]},
+  // GT
+  {n:"Goku (GT) Super Saiyan",t:["gt","saiyans"]},
+  {n:"Goku (GT) Super Saiyan 3",t:["gt","saiyans"]},
+  {n:"Goku (GT) Super Saiyan 4",t:["gt","saiyans"]},
+  {n:"Vegeta (GT) Super Saiyan 4",t:["gt","saiyans"]},
+  {n:"Baby Vegeta",t:["gt","villains"]},
+  {n:"Super Baby Vegeta",t:["gt","villains"]},
+  {n:"Super 17",t:["gt","villains"]},
+  {n:"Omega Shenron",t:["gt","villains"]},
+  // Dragon Ball Z Movies
+  {n:"Broly (Z)",t:["movies","saiyans","villains"]},
+  {n:"Broly (Z) Super Saiyan",t:["movies","saiyans","villains"]},
+  {n:"Broly (Z) Legendary Super Saiyan",t:["movies","saiyans","villains"]},
+  {n:"Cooler (Final Form)",t:["movies","villains"]},
+  {n:"Metal Cooler",t:["movies","villains"]},
+  {n:"Super Garlic Jr.",t:["movies","villains"]},
+  {n:"Dr. Wheelo",t:["movies","villains"]},
+  {n:"Lord Slug",t:["movies","villains"]},
+  {n:"Lord Slug (Giant)",t:["movies","villains"]},
+  {n:"Bojack",t:["movies","villains"]},
+  {n:"Full-Power Bojack",t:["movies","villains"]},
+  {n:"Tapion",t:["movies"]},
+  {n:"Hirudegarn",t:["movies","villains"]},
+  {n:"Spopovich",t:["z","villains"]},
+  // Dragon Ball Super
+  {n:"Beerus",t:["super"]},
+  {n:"Whis",t:["super"]},
+  {n:"Hit",t:["super","villains"]},
+  {n:"Frost",t:["super","villains"]},
+  {n:"Cabba",t:["super","saiyans"]},
+  {n:"Cabba Super Saiyan",t:["super","saiyans"]},
+  {n:"Cabba Super Saiyan 2",t:["super","saiyans"]},
+  {n:"Dyspo",t:["super"]},
+  {n:"Ribrianne",t:["super"]},
+  {n:"Bergamo",t:["super"]},
+  {n:"Kakunsa",t:["super"]},
+  {n:"Roasie",t:["super"]},
+  {n:"Anilaza",t:["super","villains"]},
+  {n:"Toppo",t:["super"]},
+  {n:"Toppo God of Destruction",t:["super"]},
+  {n:"Jiren",t:["super"]},
+  {n:"Jiren (Full Power)",t:["super"]},
+  {n:"Kefla",t:["super","saiyans"]},
+  {n:"Caulifla",t:["super","saiyans"]},
+  {n:"Kale",t:["super","saiyans"]},
+  {n:"Broly (Super)",t:["super","saiyans","movies"]},
+  {n:"Broly (Super) Full Power",t:["super","saiyans","movies"]},
+  {n:"Zamasu",t:["super","villains"]},
+  {n:"Fused Zamasu",t:["super","villains"]},
+  {n:"Goku Black",t:["super","saiyans","villains"]},
+  {n:"Goku Black Rose",t:["super","saiyans","villains"]},
+  {n:"Merged Zamasu",t:["super","villains"]},
+  {n:"Fu",t:["super","villains"]},
+  {n:"Android 21",t:["super","villains"]},
+  {n:"Frieza Force Soldier",t:["super","villains"]},
+];
+
+// ── State ─────────────────────────────────────────────────
+let teamSize = 5;
+let activeFilter = 'all';
+
+// ── Filter pills ──────────────────────────────────────────
+document.querySelectorAll('.pill').forEach(p => {
+  p.addEventListener('click', () => {
+    document.querySelectorAll('.pill').forEach(x => x.classList.remove('active'));
+    p.classList.add('active');
+    activeFilter = p.dataset.filter;
+  });
+});
+
+// ── Size buttons ──────────────────────────────────────────
+document.querySelectorAll('.size-btn').forEach(b => {
+  b.addEventListener('click', () => {
+    document.querySelectorAll('.size-btn').forEach(x => x.classList.remove('active'));
+    b.classList.add('active');
+    teamSize = parseInt(b.dataset.size);
+  });
+});
+
+// ── Helpers ───────────────────────────────────────────────
+function shuffle(arr) {
+  const a = [...arr];
+  for (let i = a.length-1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i+1));
+    [a[i],a[j]] = [a[j],a[i]];
+  }
+  return a;
+}
+
+function getPool() {
+  if (activeFilter === 'all') return ALL;
+  return ALL.filter(c => c.t.includes(activeFilter));
+}
+
+function pickTeam(pool, exclude = []) {
+  const available = pool.filter(c => !exclude.includes(c.n));
+  return shuffle(available).slice(0, teamSize);
+}
+
+function renderTeam(fighters, containerId) {
+  const el = document.getElementById(containerId);
+  el.innerHTML = fighters.map((f, i) => `
+    <div class="fighter-chip">
+      <span class="chip-num">${i+1}</span>
+      <span class="chip-name">${f.n}</span>
+    </div>
+  `).join('');
+}
+
+// ── Scenario templates ────────────────────────────────────
+// {A} = Joe's team leader (first fighter), {B} = Jack's team leader, {JOE} = full Joe team, {JACK} = full Jack team
+const SCENARIOS = [
+  "Towa and Mira have rewritten history using the Time Nest's forbidden scrolls, merging three separate timelines into one chaotic battlefield. {A} and their allies emerged from one fractured reality while {B}'s team clawed their way out of another. With the Dragon Balls scattered across the wreckage of both worlds, the only way to restore the timeline is to fight for the right to make the wish — and only one team will be left standing to make it.",
+
+  "A rogue Supreme Kai accidentally shattered the barrier between Universe 6 and Universe 7 during a failed fusion experiment, pulling warriors from across both dimensions into a pocket dimension with no exit. {A} and {B} each believe the other team caused the collapse. The pocket dimension is shrinking — it will implode in minutes. The last team standing gets teleported home. Everyone else disappears forever.",
+
+  "Babidi's mind control magic has been reverse-engineered by a resurrected Dr. Gero, who is broadcasting it across every timeline simultaneously. {B}'s entire team has been corrupted — their power amplified but their minds enslaved. {A} and their crew are the only fighters close enough to break the signal at its source, which means going through their corrupted rivals first. There's no negotiating with a Majin.",
+
+  "The Super Dragon Balls were stolen by a time-traveling villain who used them to wish for the strongest possible team of warriors to protect him forever. He got {B}'s squad. Now {A}'s team has been deputized by Zeno's Grand Priest to take them down and reclaim the Super Dragon Balls before that wish becomes permanent and reshapes the entire multiverse around one man's ego.",
+
+  "In an alternate future where the Androids won, a resistance cell made a desperate wish on the Dragon Balls to bring back Earth's greatest warriors from across different timelines. They got {A}'s team — but the wish pulled {B}'s crew from another timeline too, and those warriors think the resistance fighters are the enemy. Both teams are tearing through each other while the androids close in from every direction.",
+
+  "Cell has achieved a new form by absorbing energy from parallel universes, and he's constructed a tournament bracket to determine which fighters he absorbs last. {A} and {B} have both been dragged into his arena against their will. The catch: they have to fight each other in the semifinals. The winner faces Cell. Neither team is willing to lose — because losing means becoming fuel for the very monster they came to destroy.",
+
+  "The Hyperbolic Time Chamber ruptured during an extreme training session, creating an exit into a dimension where every version of every fighter exists simultaneously. {A}'s team stumbled in from one side of the crack; {B}'s team fell in from the other. With the chamber collapsing around them, the only exit portal only has enough energy for one team to pass through. The other team gets erased from existence.",
+
+  "Zamasu's hatred for mortals survived his erasure by fusing with the fabric of a dying universe. That corrupted universe is bleeding into the main timeline, and it's warping the minds of anyone it touches. {B}'s fighters have been partially consumed by it — they can still fight, but they're no longer fully themselves. {A}'s team has one shot to knock them back to their senses before the corruption becomes permanent and Zamasu wins from beyond death.",
+
+  "The tournament of power never ended — Zeno simply paused it and forgot about it for two hundred years. When the Grand Priest finally hit resume, the arena reformed with whatever warriors were nearest to the frequency of the original signal. {A} landed on one side of the ring; {B} landed on the other. Zeno is watching. The last universe standing gets preserved. The other gets erased. No one told them the rules changed while they were paused.",
+
+  "Fu opened a rift into the Prison Planet and accidentally let every captured warrior out at once. {A}'s team got pulled into the escape route alongside {B}'s crew — but Fu sealed the only exit behind them and told both teams that only the stronger group gets the key. He's watching from a floating platform above with a notebook, quietly scribbling down combat data. He doesn't care who wins. He just needed good footage.",
+
+  "Whis has given both teams a special assignment: simulate a full-scale invasion from a hypothetical enemy civilization that has already defeated two universes. {A} takes the role of Earth's defenders. {B} plays the invaders. The simulation is indistinguishable from reality. Everyone's power is real. The injuries are real. Whis told them it was a training exercise — but Beerus is watching quietly from the sidelines, and he looks a little too interested in the outcome.",
+
+  "Someone made a wish on the Black Star Dragon Balls to see the greatest battle in all of history. The dragon interpreted that literally, pulling {A} and {B}'s teams out of their respective timelines and dropping them in a replica of the Namek battlefield at its most destructive moment. The planet is already exploding around them. They have five minutes before everything goes under — but neither team showed up here to run.",
+
+  "An ancient Kai sealed a forbidden technique inside a warrior's body ten thousand years ago — and that technique has just awakened inside one of {B}'s fighters, overriding their personality and turning them into a weapon. The rest of {B}'s team doesn't fully understand what happened; they just know their friend isn't themselves anymore and they're not backing down. {A}'s team arrived through a Kai's portal specifically to neutralize the threat. This is going to hurt everyone involved.",
+
+  "Broly's energy signature has been detected reverberating across seventeen parallel universes simultaneously, suggesting that somewhere in the multiverse, a version of Broly achieved a form that threatens universal stability. Both {A} and {B}'s teams have been dispatched by their respective Kais to investigate and contain the threat — but they've arrived at the same coordinates at the same time, and neither team was briefed that anyone else was coming. Now there's a standoff, and someone blinked.",
+
+  "The Dragon Balls were used to wish for the most powerful fighters from every era to compete in one ultimate tournament — but whoever made the wish forgot to specify a referee. {A}'s team and {B}'s team both arrived expecting a structured bracket. There's no bracket. There's no referee. There's just a ring, a crowd of Kais watching nervously, and the dawning realization that the only rule is the one you enforce yourself.",
+];
+
+function generateScenario(joeTeam, jackTeam) {
+  const template = SCENARIOS[Math.floor(Math.random() * SCENARIOS.length)];
+  const joeLeader  = joeTeam[0].n;
+  const jackLeader = jackTeam[0].n;
+  return template
+    .replace(/\{A\}/g, joeLeader)
+    .replace(/\{B\}/g, jackLeader)
+    .replace(/\{JOE\}/g, joeTeam.map(f=>f.n).join(', '))
+    .replace(/\{JACK\}/g, jackTeam.map(f=>f.n).join(', '));
+}
+
+// ── Typewriter effect ─────────────────────────────────────
+function typewrite(el, text, speed = 18) {
+  el.innerHTML = '';
+  el.classList.remove('loading');
+  let i = 0;
+  const cursor = document.createElement('span');
+  cursor.className = 'cursor';
+  el.appendChild(cursor);
+
+  const tick = () => {
+    if (i < text.length) {
+      el.insertBefore(document.createTextNode(text[i++]), cursor);
+      setTimeout(tick, speed);
+    } else {
+      cursor.remove();
+    }
+  };
+  tick();
+}
+
+// ── Generate ──────────────────────────────────────────────
+document.getElementById('genBtn').addEventListener('click', () => {
+  const pool = getPool();
+  if (pool.length < teamSize * 2) {
+    alert(`Not enough fighters in this filter for ${teamSize}v${teamSize}. Try a larger pool.`);
+    return;
+  }
+
+  const btn = document.getElementById('genBtn');
+  btn.disabled = true;
+
+  const joeTeam  = pickTeam(pool);
+  const jackTeam = pickTeam(pool, joeTeam.map(f => f.n));
+
+  renderTeam(joeTeam, 'teamJoe');
+  renderTeam(jackTeam, 'teamJack');
+
+  document.getElementById('result').style.display = 'flex';
+  const scenarioEl = document.getElementById('scenarioText');
+  scenarioEl.className = 'scenario-text loading';
+  scenarioEl.textContent = '';
+
+  const text = generateScenario(joeTeam, jackTeam);
+  typewrite(scenarioEl, text);
+
+  btn.disabled = false;
+  btn.textContent = '⚡ GENERATE BATTLE';
+});
+</script>
+</body>
+</html>
