@@ -98,7 +98,7 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
     <div class="scenario-box">
       <div class="scenario-label">⚡ Battle Scenario</div>
       <div class="scenario-text" id="scenarioText"></div>
-      <button class="tts-btn" id="ttsBtn" style="display:none" onclick="(function(b){const t=document.getElementById(\'scenarioText\');speakScenario(b,t.innerText);})(this)">🔊 Read Aloud</button>
+      <button class="tts-btn" id="ttsBtn" style="display:none" onclick="speakBtn(this)">🔊 Read Aloud</button>
     </div>
   </div>
 </div>
@@ -209,6 +209,13 @@ document.getElementById('genBtn').addEventListener('click',()=>{
 // ── TTS (OpenAI Nova via proxy) ───────────────────────────
 const TTS_URL = 'https://tts-proxy-i1sn.onrender.com';
 let ttsAudio = null;
+
+function speakBtn(btn) {
+  const el = document.getElementById('scenarioText');
+  const txt = (el ? (el.innerText || el.textContent) : '').trim();
+  if (!txt) { return; }
+  speakScenario(btn, txt);
+}
 
 async function speakScenario(btn, text) {
   // iOS audio unlock MUST happen synchronously before any await
